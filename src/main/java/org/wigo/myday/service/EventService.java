@@ -1,4 +1,4 @@
 package org.wigo.myday.service;
 
-public class UserService {
+public class EventService {
 }

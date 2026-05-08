@@ -1,16 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="">
-        <meta name="author" content="">
-        <title>myDay</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <title>myDay</title>
+    <link rel="stylesheet" href="../css/style.css" />
+  </head>
 
-    <body>
-        <div id="app"> <p> "fguyghhfghuid"</p></div>
-    </body>
+  <body>
+    <section id="header">
+      <div id="app">
+        <h1>My Day</h1>
+      </div>
+    </section>
+
+    <section id="loginForm">
+      <div id="loginAlert"><p>Welcome!</p></div>
+      <div id="sectionTitle">Login</div>
+
+      <div id="email">
+        <label for="email">Email:</label>
+        <input
+          type="email"
+          id="emailInput"
+          name="email"
+          placeholder="Enter your email"
+          required
+        />
+      </div>
+
+      <div id="password">
+        <label for="password">Password:</label>
+        <input
+          type="password"
+          id="passwordInput"
+          name="password"
+          placeholder="Enter your password"
+          required
+        />
+      </div>
+      <div id="buttons">
+        <button id="loginButton">Login</button>
+
+        <button id="registerButton">Register</button>
+      </div>
+
+      <div id="forgotPassword">
+        <a href="#" style="text-decoration: underline, false"
+          >Forgot Password?</a
+        >
+      </div>
+    </section>
+  </body>
+  <script type="module" src="../js/script.js"></script>
+  <script type="module" src="../js/app.js"></script>
 </html>
