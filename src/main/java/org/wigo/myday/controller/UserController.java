@@ -3,17 +3,19 @@ package org.wigo.myday.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.wigo.myday.entity.UsersEntity;
+import org.wigo.myday.model.UserEntity;
 import org.wigo.myday.service.UserService;
 
 import java.util.List;
-import java.util.Optional;
 
 
 @CrossOrigin(origins = "http://127.0.0.1:5500")
+@RequestMapping("/users")
 @RestController
-//@RequestMapping("/api/")
 public class UserController {
     private final UserService userService;
     
@@ -22,20 +24,17 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping
-    public List<UsersEntity> getUsers(){
-        return userService.readUserDetails();
+    @GetMapping("/me")
+    public ResponseEntity<UserEntity> authenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
+        return new ResponseEntity<>(userEntity, HttpStatus.OK);
     }
 
-    @GetMapping("/api/home/{id}")
-    public Optional<UsersEntity> getUser(@PathVariable int id){
-        return userService.readUserDetails(id);
+    @GetMapping("/")
+    public ResponseEntity<List<UserEntity>> getAllUsers() {
+        List<UserEntity> users = userService.allUsers();
+        return ResponseEntity.ok(users);
     }
-
-    @PostMapping("/api/login")
-    public Optional<UsersEntity> login(@RequestBody UsersEntity user){
-        return userService.login(user.getEmail(), user.getPassword());
-    }
-
 
 }
