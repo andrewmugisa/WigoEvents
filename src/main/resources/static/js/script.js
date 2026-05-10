@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // script.js
 // Handles login page (index.html)
 
@@ -40,3 +41,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+=======
+>>>>>>> origin/main
