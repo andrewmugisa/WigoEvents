@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   Auth.requireAuth();
 
   const userProfile = document.getElementById("userProfile");
-  const logoutButton = document.getElementById("logoutButton");
+  const logoutButton = document.getElementById("logoucleartButton");
 
   // ── Load current user ──────────────────────────────────────────────────────
   try {
