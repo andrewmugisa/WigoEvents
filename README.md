@@ -1,173 +1,435 @@
-# WiGO_EVENTS
 
 
 ---
 
-# WiGO EVENTS API Documentation
-
-This document describes the authentication and user endpoints for the MyDay application.
+## Auth Layer — Manual Test Guide
 
 ---
 
-## **Authentication Endpoints**
+### 1. Signup — happy path
 
-### **1. Signup**
-
-**POST `/auth/signup`**
-
-Registers a new user.
-
-**Request Body (JSON):**
+`POST http://localhost:8080/auth/signup`
 
 ```json
 {
-  "email": "user@example.com",
-  "username": "username",
-  "password": "password123"
+  "email": "wigo.inc@gmail.com",
+  "password": "123456",
+  "username": "test",
+  "name": "Test User"
 }
 ```
 
-**Response:**
-
-* `200 OK` — Returns the created user.
-
-**Notes:**
-
-* No authentication required.
-* Email and username must be unique.
+**Expected 200**
+```json
+{
+  "userId": 1,
+  "username": "test",
+  "name": "Test User",
+  "email": "wigo.inc@gmail.com",
+  "enabled": false,
+  "createdAt": "2026-05-10T00:00:00Z"
+}
+```
+✅ No `password`, no `verificationCode`, no `verificationCodeExpiration` in response
+✅ `name` is populated
+✅ `createdAt` is populated
+✅ `enabled` is `false`
 
 ---
 
-### **2. Login**
+### 2. Signup — validation errors
 
-**POST `/auth/login`**
-
-Authenticates a registered user. Returns a JWT token.
-
-**Request Body (JSON):**
+`POST http://localhost:8080/auth/signup`
 
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "email": "not-an-email",
+  "password": "123",
+  "username": "",
+  "name": ""
 }
 ```
 
-**Response (200 OK):**
+**Expected 400**
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "details": {
+    "email": "Invalid email format",
+    "password": "Password must be at least 6 characters",
+    "username": "Username is required",
+    "name": "Name is required"
+  }
+}
+```
+
+---
+
+### 3. Signup — duplicate email
+
+`POST http://localhost:8080/auth/signup` *(same email as test 1)*
 
 ```json
 {
-  "token": "jwt-token-string",
+  "email": "wigo.inc@gmail.com",
+  "password": "123456",
+  "username": "test2",
+  "name": "Test Two"
+}
+```
+
+**Expected 400**
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Email is already registered"
+}
+```
+
+---
+
+### 4. Signup — duplicate username
+
+`POST http://localhost:8080/auth/signup`
+
+```json
+{
+  "email": "other@gmail.com",
+  "password": "123456",
+  "username": "test",
+  "name": "Other User"
+}
+```
+
+**Expected 400**
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Username is already taken"
+}
+```
+
+---
+
+### 5. Login before verification
+
+`POST http://localhost:8080/auth/login`
+
+```json
+{
+  "email": "wigo.inc@gmail.com",
+  "password": "123456"
+}
+```
+
+**Expected 403**
+```json
+{
+  "timestamp": "...",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Account not verified. Please check your email"
+}
+```
+
+---
+
+### 6. Verify — wrong email
+
+`POST http://localhost:8080/auth/verify`
+
+```json
+{
+  "email": "wrong@gmail.com",
+  "verificationCode": "123456"
+}
+```
+
+**Expected 400**
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "User not found"
+}
+```
+
+---
+
+### 7. Verify — wrong code
+
+`POST http://localhost:8080/auth/verify`
+
+```json
+{
+  "email": "wigo.inc@gmail.com",
+  "verificationCode": "000000"
+}
+```
+
+**Expected 400**
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Verification code does not match"
+}
+```
+
+---
+
+### 8. Verify — happy path
+
+`POST http://localhost:8080/auth/verify`
+*(use the code from the email sent in test 1)*
+
+```json
+{
+  "email": "wigo.inc@gmail.com",
+  "verificationCode": "XXXXXX"
+}
+```
+
+**Expected 200**
+```json
+{
+  "message": "Account verified successfully"
+}
+```
+
+---
+
+### 9. Verify — already verified
+
+`POST http://localhost:8080/auth/verify` *(repeat test 8)*
+
+```json
+{
+  "email": "wigo.inc@gmail.com",
+  "verificationCode": "XXXXXX"
+}
+```
+
+**Expected 409**
+```json
+{
+  "timestamp": "...",
+  "status": 409,
+  "error": "Conflict",
+  "message": "Account is already verified"
+}
+```
+
+---
+
+### 10. Resend — user not found
+
+`POST http://localhost:8080/auth/resend`
+
+```json
+{
+  "email": "nobody@gmail.com"
+}
+```
+
+**Expected 400**
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "User not found"
+}
+```
+
+---
+
+### 11. Resend — already verified
+
+`POST http://localhost:8080/auth/resend`
+
+```json
+{
+  "email": "wigo.inc@gmail.com"
+}
+```
+
+**Expected 409**
+```json
+{
+  "timestamp": "...",
+  "status": 409,
+  "error": "Conflict",
+  "message": "Account is already verified"
+}
+```
+
+---
+
+### 12. Resend — happy path
+
+*Sign up a fresh account first (don't verify it), then:*
+
+`POST http://localhost:8080/auth/resend`
+
+```json
+{
+  "email": "fresh@gmail.com"
+}
+```
+
+**Expected 200**
+```json
+{
+  "message": "Verification code resent successfully"
+}
+```
+✅ New code arrives in email
+✅ Old code no longer works (test 7 with old code should fail)
+
+---
+
+### 13. Login — wrong password
+
+`POST http://localhost:8080/auth/login`
+
+```json
+{
+  "email": "wigo.inc@gmail.com",
+  "password": "wrongpassword"
+}
+```
+
+**Expected 401**
+```json
+{
+  "timestamp": "...",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Invalid email or password"
+}
+```
+
+---
+
+### 14. Login — happy path
+
+`POST http://localhost:8080/auth/login`
+
+```json
+{
+  "email": "wigo.inc@gmail.com",
+  "password": "123456"
+}
+```
+
+**Expected 200**
+```json
+{
+  "token": "eyJ...",
   "expiresIn": 3600000
 }
 ```
-
-**Notes:**
-
-* Include the token as `Bearer` in Authorization header for protected endpoints.
-* Token expires after the duration specified in `expiresIn` (milliseconds).
+✅ Save the token for tests 15–17
 
 ---
 
-### **3. Verify Email**
+### 15. Get current user — happy path
 
-**POST `/auth/verify`**
+`GET http://localhost:8080/users/me`
+`Authorization: Bearer <token from test 14>`
 
-Verifies a newly registered user's email using a token.
-
-**Request Body (JSON):**
-
+**Expected 200**
 ```json
 {
-  "token": "verification-token"
+  "userId": 1,
+  "username": "test",
+  "name": "Test User",
+  "email": "wigo.inc@gmail.com",
+  "enabled": true,
+  "createdAt": "2026-05-10T00:00:00Z"
+}
+```
+✅ No sensitive fields
+
+---
+
+### 16. Get current user — no token
+
+`GET http://localhost:8080/users/me`
+*(no Authorization header)*
+
+**Expected 401**
+```json
+{
+  "timestamp": "...",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "..."
 }
 ```
 
-**Response:**
+---
 
-* `200 OK` — `"Account verified Successfully"`
-* `400 Bad Request` — Error message if token is invalid or expired
+### 17. Get current user — expired/invalid token
 
-**Notes:**
+`GET http://localhost:8080/users/me`
+`Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.fake.token`
 
-* Public endpoint, no authentication required.
-* Use the **Resend** endpoint if token is lost or expired.
+**Expected 401**
 
 ---
 
-### **4. Resend Verification Token**
+### 18. Expired verification code
 
-**POST `/auth/resend?email=<user-email>`**
+*This requires either waiting 15 minutes or temporarily setting expiry to 1 minute in `AuthenticationService` for testing:*
 
-Resends the verification token to the specified email.
+```java
+private static final int VERIFICATION_EXPIRY_MINUTES = 1;
+```
 
-**Request Parameters:**
+Sign up → wait → try to verify:
 
-* `email` (string) — The email to resend the token to
-
-**Response:**
-
-* `200 OK` — `"Verification code resend Successfully"`
-* `400 Bad Request` — Error message if resending fails
-
-**Notes:**
-
-* Public endpoint, no authentication required.
-
----
-
-## **User Endpoints**
-
-### **1. Get Authenticated User**
-
-**GET `/users/me`**
-
-Retrieves the currently authenticated user's profile.
-
-**Authentication:**
-
-* Required — Include JWT Bearer token in Authorization header
-
-**Response (200 OK):**
-
+**Expected 409**
 ```json
 {
-  "id": 1,
-  "username": "username",
-  "email": "user@example.com",
-  "status": "ACTIVE"
+  "timestamp": "...",
+  "status": 409,
+  "error": "Conflict",
+  "message": "Verification code has expired. Please request a new one"
 }
 ```
 
-**Notes:**
-
-* Returns the data of the logged-in user only.
-
 ---
 
-### **2. Get All Users**
+### Pass criteria summary
 
-**GET `/users/`**
-
-Returns a list of all registered users.
-
-**Authentication:**
-
-* Required — JWT Bearer token
-
-**Response (200 OK):**
-
-```json
-[
-  {
-    "id": 1,
-    "username": "username",
-    "email": "user@example.com",
-    "status": "ACTIVE"
-  },
-  ...
-]
-```
-
----
-
+| # | Endpoint | Scenario | Expected status |
+|---|---|---|---|
+| 1 | POST /auth/signup | Happy path | 200 |
+| 2 | POST /auth/signup | Validation errors | 400 |
+| 3 | POST /auth/signup | Duplicate email | 400 |
+| 4 | POST /auth/signup | Duplicate username | 400 |
+| 5 | POST /auth/login | Unverified account | 403 |
+| 6 | POST /auth/verify | Wrong email | 400 |
+| 7 | POST /auth/verify | Wrong code | 400 |
+| 8 | POST /auth/verify | Happy path | 200 |
+| 9 | POST /auth/verify | Already verified | 409 |
+| 10 | POST /auth/resend | User not found | 400 |
+| 11 | POST /auth/resend | Already verified | 409 |
+| 12 | POST /auth/resend | Happy path | 200 |
+| 13 | POST /auth/login | Wrong password | 401 |
+| 14 | POST /auth/login | Happy path | 200 |
+| 15 | GET /users/me | Valid token | 200 |
+| 16 | GET /users/me | No token | 401 |
+| 17 | GET /users/me | Bad token | 401 |
+| 18 | POST /auth/verify | Expired code | 409 |
