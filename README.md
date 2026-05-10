@@ -1,12 +1,14 @@
 ---
 
-## Auth Layer — Manual Test Guide (Final)
+# Auth Layer — Manual Test Guide (Final)
 
 ---
 
-### 1. Signup — happy path
+## 1. Signup — Happy Path
 
-`POST http://localhost:8080/auth/signup`
+**Endpoint:** `POST /auth/signup`
+
+**Request:**
 
 ```json
 {
@@ -17,27 +19,27 @@
 ```
 
 **Expected 200**
+
 ```json
 {
   "userId": 1,
-  "username": "testuser_4821",
+  "username": "testuser_4821",  // auto-generated display username
   "name": "Test User",
   "email": "testEmail@test.com",
   "enabled": false,
   "createdAt": "2026-05-10T00:00:00Z"
 }
 ```
+
 ✅ No `password`, `verificationCode`, `verificationCodeExpiration` in response
-✅ `username` is auto-generated from name
-✅ `name` is populated
-✅ `createdAt` is populated
-✅ `enabled` is `false`
+✅ `username` is auto-generated
+✅ `enabled` is `false` until verification
 
 ---
 
-### 2. Signup — validation errors
+## 2. Signup — Validation Errors
 
-`POST http://localhost:8080/auth/signup`
+**Request:**
 
 ```json
 {
@@ -48,6 +50,7 @@
 ```
 
 **Expected 400**
+
 ```json
 {
   "timestamp": "...",
@@ -64,9 +67,9 @@
 
 ---
 
-### 3. Signup — duplicate email
+## 3. Signup — Duplicate Email
 
-`POST http://localhost:8080/auth/signup` *(same email as test 1)*
+**Request:** *(same email as test 1)*
 
 ```json
 {
@@ -77,6 +80,7 @@
 ```
 
 **Expected 400**
+
 ```json
 {
   "timestamp": "...",
@@ -88,29 +92,30 @@
 
 ---
 
-### 4. Signup — name that generates a taken username
+## 4. Signup — Name Collision
 
-*Simulate collision by registering two users with the same name. The second should get a different auto-generated suffix.*
+* Register two users with the same `name`.
+* Second signup should get a **unique auto-generated username**.
 
-First signup:
 ```json
 { "email": "user1@gmail.com", "password": "123456", "name": "John Doe" }
 ```
-→ gets username e.g. `johndoe`
 
-Second signup:
+→ `username`: `johndoe`
+
 ```json
 { "email": "user2@gmail.com", "password": "123456", "name": "John Doe" }
 ```
 
-**Expected 200** — username will be `johndoe_XXXX` (different suffix, not a conflict error)
-✅ Uniqueness handled server-side transparently
+→ `username`: `johndoe_XXXX`
+
+✅ Uniqueness handled server-side; no conflict errors
 
 ---
 
-### 5. Login before verification
+## 5. Login — Unverified Account
 
-`POST http://localhost:8080/auth/login`
+**Request:**
 
 ```json
 {
@@ -120,6 +125,7 @@ Second signup:
 ```
 
 **Expected 403**
+
 ```json
 {
   "timestamp": "...",
@@ -131,9 +137,9 @@ Second signup:
 
 ---
 
-### 6. Verify — wrong email
+## 6–9. Verify Account
 
-`POST http://localhost:8080/auth/verify`
+### 6. Wrong Email
 
 ```json
 {
@@ -143,6 +149,7 @@ Second signup:
 ```
 
 **Expected 400**
+
 ```json
 {
   "timestamp": "...",
@@ -152,11 +159,7 @@ Second signup:
 }
 ```
 
----
-
-### 7. Verify — wrong code
-
-`POST http://localhost:8080/auth/verify`
+### 7. Wrong Code
 
 ```json
 {
@@ -166,6 +169,7 @@ Second signup:
 ```
 
 **Expected 400**
+
 ```json
 {
   "timestamp": "...",
@@ -175,32 +179,24 @@ Second signup:
 }
 ```
 
----
-
-### 8. Verify — happy path
-
-`POST http://localhost:8080/auth/verify`
-*(use the code from the email sent in test 1)*
+### 8. Happy Path
 
 ```json
 {
   "email": "testEmail@test.com",
-  "verificationCode": "XXXXXX"
+  "verificationCode": "XXXXXX" // use actual code from email
 }
 ```
 
 **Expected 200**
+
 ```json
 {
   "message": "Account verified successfully"
 }
 ```
 
----
-
-### 9. Verify — already verified
-
-`POST http://localhost:8080/auth/verify` *(repeat test 8)*
+### 9. Already Verified
 
 ```json
 {
@@ -210,6 +206,7 @@ Second signup:
 ```
 
 **Expected 409**
+
 ```json
 {
   "timestamp": "...",
@@ -221,17 +218,16 @@ Second signup:
 
 ---
 
-### 10. Resend — user not found
+## 10–12. Resend Verification Code
 
-`POST http://localhost:8080/auth/resend`
+### 10. User Not Found
 
 ```json
-{
-  "email": "nobody@gmail.com"
-}
+{ "email": "nobody@gmail.com" }
 ```
 
 **Expected 400**
+
 ```json
 {
   "timestamp": "...",
@@ -241,19 +237,14 @@ Second signup:
 }
 ```
 
----
-
-### 11. Resend — already verified
-
-`POST http://localhost:8080/auth/resend`
+### 11. Already Verified
 
 ```json
-{
-  "email": "testEmail@test.com"
-}
+{ "email": "testEmail@test.com" }
 ```
 
 **Expected 409**
+
 ```json
 {
   "timestamp": "...",
@@ -263,34 +254,30 @@ Second signup:
 }
 ```
 
----
+### 12. Happy Path
 
-### 12. Resend — happy path
-
-*Sign up a fresh account, do not verify it, then:*
-
-`POST http://localhost:8080/auth/resend`
+* Sign up a fresh account (unverified)
+* Send:
 
 ```json
-{
-  "email": "fresh@gmail.com"
-}
+{ "email": "fresh@gmail.com" }
 ```
 
 **Expected 200**
+
 ```json
 {
   "message": "Verification code resent successfully"
 }
 ```
-✅ New code arrives in email
-✅ Old code no longer works (test 7 with old code should now fail)
+
+✅ Old code invalidated
 
 ---
 
-### 13. Login — wrong password
+## 13–14. Login
 
-`POST http://localhost:8080/auth/login`
+### 13. Wrong Password
 
 ```json
 {
@@ -300,6 +287,7 @@ Second signup:
 ```
 
 **Expected 401**
+
 ```json
 {
   "timestamp": "...",
@@ -309,11 +297,7 @@ Second signup:
 }
 ```
 
----
-
-### 14. Login — happy path
-
-`POST http://localhost:8080/auth/login`
+### 14. Happy Path
 
 ```json
 {
@@ -323,74 +307,44 @@ Second signup:
 ```
 
 **Expected 200**
+
 ```json
 {
   "token": "eyJ...",
   "expiresIn": 3600000
 }
 ```
-✅ Save the token for tests 15–17
+
+✅ Save token for authenticated endpoints
 
 ---
 
-### 15. Get current user — happy path
+## 15–17. Get Current User
 
-`GET http://localhost:8080/users/me`
-`Authorization: Bearer <token from test 14>`
+**Endpoint:** `GET /users/me`
+**Header:** `Authorization: Bearer <token>`
 
-**Expected 200**
-```json
-{
-  "userId": 1,
-  "username": "testuser_4821",
-  "name": "Test User",
-  "email": "testEmail@test.com",
-  "enabled": true,
-  "createdAt": "2026-05-10T00:00:00Z"
-}
-```
-✅ No sensitive fields
+* **15. Valid token → 200**
+* **16. No token → 401**
+* **17. Invalid token → 401**
+
+✅ Response excludes sensitive fields
 
 ---
 
-### 16. Get current user — no token
+## 18–20. Update Username
 
-`GET http://localhost:8080/users/me`
-*(no Authorization header)*
+**Endpoint:** `PATCH /users/me/username`
+**Header:** `Authorization: Bearer <token>`
 
-**Expected 401**
-```json
-{
-  "timestamp": "...",
-  "status": 401,
-  "error": "Unauthorized",
-  "message": "..."
-}
-```
-
----
-
-### 17. Get current user — invalid token
-
-`GET http://localhost:8080/users/me`
-`Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.fake.token`
-
-**Expected 401**
-
----
-
-### 18. Update username — happy path
-
-`PATCH http://localhost:8080/users/me/username`
-`Authorization: Bearer <token from test 14>`
+### 18. Happy Path
 
 ```json
-{
-  "username": "mynewusername"
-}
+{ "username": "mynewusername" }
 ```
 
 **Expected 200**
+
 ```json
 {
   "userId": 1,
@@ -402,20 +356,14 @@ Second signup:
 }
 ```
 
----
-
-### 19. Update username — already taken
-
-`PATCH http://localhost:8080/users/me/username`
-`Authorization: Bearer <token from test 14>`
+### 19. Username Taken
 
 ```json
-{
-  "username": "mynewusername"
-}
+{ "username": "mynewusername" }
 ```
 
 **Expected 400**
+
 ```json
 {
   "timestamp": "...",
@@ -425,28 +373,22 @@ Second signup:
 }
 ```
 
----
-
-### 20. Update username — no token
-
-`PATCH http://localhost:8080/users/me/username`
-*(no Authorization header)*
-
-**Expected 401**
+### 20. No Token → 401
 
 ---
 
-### 21. Expired verification code
+## 21. Expired Verification Code
 
-*Temporarily set expiry to 1 minute for testing:*
+* Temporarily set expiry to 1 minute for testing:
 
 ```java
 private static final int VERIFICATION_EXPIRY_MINUTES = 1;
 ```
 
-Sign up → wait 1 minute → try to verify:
+* Sign up → wait → verify
 
 **Expected 409**
+
 ```json
 {
   "timestamp": "...",
@@ -458,28 +400,23 @@ Sign up → wait 1 minute → try to verify:
 
 ---
 
-### Pass criteria summary
+### ✅ Pass Criteria Summary
 
-| # | Endpoint | Scenario | Expected status |
-|---|---|---|---|
-| 1 | POST /auth/signup | Happy path | 200 |
-| 2 | POST /auth/signup | Validation errors | 400 |
-| 3 | POST /auth/signup | Duplicate email | 400 |
-| 4 | POST /auth/signup | Duplicate name collision | 200 (different suffix) |
-| 5 | POST /auth/login | Unverified account | 403 |
-| 6 | POST /auth/verify | Wrong email | 400 |
-| 7 | POST /auth/verify | Wrong code | 400 |
-| 8 | POST /auth/verify | Happy path | 200 |
-| 9 | POST /auth/verify | Already verified | 409 |
-| 10 | POST /auth/resend | User not found | 400 |
-| 11 | POST /auth/resend | Already verified | 409 |
-| 12 | POST /auth/resend | Happy path | 200 |
-| 13 | POST /auth/login | Wrong password | 401 |
-| 14 | POST /auth/login | Happy path | 200 |
-| 15 | GET /users/me | Valid token | 200 |
-| 16 | GET /users/me | No token | 401 |
-| 17 | GET /users/me | Invalid token | 401 |
-| 18 | PATCH /users/me/username | Happy path | 200 |
-| 19 | PATCH /users/me/username | Username taken | 400 |
-| 20 | PATCH /users/me/username | No token | 401 |
-| 21 | POST /auth/verify | Expired code | 409 |
+| #  | Endpoint          | Scenario                 | Status |
+| -- | ----------------- | ------------------------ | ------ |
+| 1  | POST /auth/signup | Happy path               | 200    |
+| 2  | POST /auth/signup | Validation errors        | 400    |
+| 3  | POST /auth/signup | Duplicate email          | 400    |
+| 4  | POST /auth/signup | Duplicate name collision | 200    |
+| 5  | POST /auth/login  | Unverified account       | 403    |
+| 6  | POST /auth/verify | Wrong email              | 400    |
+| 7  | POST /auth/verify | Wrong code               | 400    |
+| 8  | POST /auth/verify | Happy path               | 200    |
+| 9  | POST /auth/verify | Already verified         | 409    |
+| 10 | POST /auth/resend | User not found           | 400    |
+| 11 | POST /auth/resend | Already verified         | 409    |
+| 12 | POST /auth/resend | Happy path               | 200    |
+| 13 | POST /auth/login  | Wrong password           | 401    |
+| 14 | POST /auth/login  | Happy path               | 200    |
+| 15 | GET /users/me     | Valid token              | 200    |
+| 16 | GET /users/me     |                          |        |
