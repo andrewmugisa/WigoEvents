@@ -10,7 +10,7 @@
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "password": "123456",
   "name": "Test User"
 }
@@ -22,7 +22,7 @@
   "userId": 1,
   "username": "testuser_4821",
   "name": "Test User",
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "enabled": false,
   "createdAt": "2026-05-10T00:00:00Z"
 }
@@ -70,7 +70,7 @@
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "password": "123456",
   "name": "Test Two"
 }
@@ -114,7 +114,7 @@ Second signup:
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "password": "123456"
 }
 ```
@@ -160,7 +160,7 @@ Second signup:
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "verificationCode": "000000"
 }
 ```
@@ -184,7 +184,7 @@ Second signup:
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "verificationCode": "XXXXXX"
 }
 ```
@@ -204,7 +204,7 @@ Second signup:
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "verificationCode": "XXXXXX"
 }
 ```
@@ -249,7 +249,7 @@ Second signup:
 
 ```json
 {
-  "email": "wigo.inc@gmail.com"
+  "email": "testEmail@test.com"
 }
 ```
 
@@ -294,7 +294,7 @@ Second signup:
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "password": "wrongpassword"
 }
 ```
@@ -317,7 +317,7 @@ Second signup:
 
 ```json
 {
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "password": "123456"
 }
 ```
@@ -344,7 +344,7 @@ Second signup:
   "userId": 1,
   "username": "testuser_4821",
   "name": "Test User",
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "enabled": true,
   "createdAt": "2026-05-10T00:00:00Z"
 }
@@ -396,7 +396,7 @@ Second signup:
   "userId": 1,
   "username": "mynewusername",
   "name": "Test User",
-  "email": "wigo.inc@gmail.com",
+  "email": "testEmail@test.com",
   "enabled": true,
   "createdAt": "2026-05-10T00:00:00Z"
 }
