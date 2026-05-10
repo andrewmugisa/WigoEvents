@@ -1,8 +1,6 @@
-
-
 ---
 
-## Auth Layer — Manual Test Guide
+## Auth Layer — Manual Test Guide (Final)
 
 ---
 
@@ -14,7 +12,6 @@
 {
   "email": "wigo.inc@gmail.com",
   "password": "123456",
-  "username": "test",
   "name": "Test User"
 }
 ```
@@ -23,14 +20,15 @@
 ```json
 {
   "userId": 1,
-  "username": "test",
+  "username": "testuser_4821",
   "name": "Test User",
   "email": "wigo.inc@gmail.com",
   "enabled": false,
   "createdAt": "2026-05-10T00:00:00Z"
 }
 ```
-✅ No `password`, no `verificationCode`, no `verificationCodeExpiration` in response
+✅ No `password`, `verificationCode`, `verificationCodeExpiration` in response
+✅ `username` is auto-generated from name
 ✅ `name` is populated
 ✅ `createdAt` is populated
 ✅ `enabled` is `false`
@@ -45,7 +43,6 @@
 {
   "email": "not-an-email",
   "password": "123",
-  "username": "",
   "name": ""
 }
 ```
@@ -60,7 +57,6 @@
   "details": {
     "email": "Invalid email format",
     "password": "Password must be at least 6 characters",
-    "username": "Username is required",
     "name": "Name is required"
   }
 }
@@ -76,7 +72,6 @@
 {
   "email": "wigo.inc@gmail.com",
   "password": "123456",
-  "username": "test2",
   "name": "Test Two"
 }
 ```
@@ -93,28 +88,23 @@
 
 ---
 
-### 4. Signup — duplicate username
+### 4. Signup — name that generates a taken username
 
-`POST http://localhost:8080/auth/signup`
+*Simulate collision by registering two users with the same name. The second should get a different auto-generated suffix.*
 
+First signup:
 ```json
-{
-  "email": "other@gmail.com",
-  "password": "123456",
-  "username": "test",
-  "name": "Other User"
-}
+{ "email": "user1@gmail.com", "password": "123456", "name": "John Doe" }
+```
+→ gets username e.g. `johndoe`
+
+Second signup:
+```json
+{ "email": "user2@gmail.com", "password": "123456", "name": "John Doe" }
 ```
 
-**Expected 400**
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Username is already taken"
-}
-```
+**Expected 200** — username will be `johndoe_XXXX` (different suffix, not a conflict error)
+✅ Uniqueness handled server-side transparently
 
 ---
 
@@ -277,7 +267,7 @@
 
 ### 12. Resend — happy path
 
-*Sign up a fresh account first (don't verify it), then:*
+*Sign up a fresh account, do not verify it, then:*
 
 `POST http://localhost:8080/auth/resend`
 
@@ -294,7 +284,7 @@
 }
 ```
 ✅ New code arrives in email
-✅ Old code no longer works (test 7 with old code should fail)
+✅ Old code no longer works (test 7 with old code should now fail)
 
 ---
 
@@ -352,7 +342,7 @@
 ```json
 {
   "userId": 1,
-  "username": "test",
+  "username": "testuser_4821",
   "name": "Test User",
   "email": "wigo.inc@gmail.com",
   "enabled": true,
@@ -380,7 +370,7 @@
 
 ---
 
-### 17. Get current user — expired/invalid token
+### 17. Get current user — invalid token
 
 `GET http://localhost:8080/users/me`
 `Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.fake.token`
@@ -389,15 +379,72 @@
 
 ---
 
-### 18. Expired verification code
+### 18. Update username — happy path
 
-*This requires either waiting 15 minutes or temporarily setting expiry to 1 minute in `AuthenticationService` for testing:*
+`PATCH http://localhost:8080/users/me/username`
+`Authorization: Bearer <token from test 14>`
+
+```json
+{
+  "username": "mynewusername"
+}
+```
+
+**Expected 200**
+```json
+{
+  "userId": 1,
+  "username": "mynewusername",
+  "name": "Test User",
+  "email": "wigo.inc@gmail.com",
+  "enabled": true,
+  "createdAt": "2026-05-10T00:00:00Z"
+}
+```
+
+---
+
+### 19. Update username — already taken
+
+`PATCH http://localhost:8080/users/me/username`
+`Authorization: Bearer <token from test 14>`
+
+```json
+{
+  "username": "mynewusername"
+}
+```
+
+**Expected 400**
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Username is already taken"
+}
+```
+
+---
+
+### 20. Update username — no token
+
+`PATCH http://localhost:8080/users/me/username`
+*(no Authorization header)*
+
+**Expected 401**
+
+---
+
+### 21. Expired verification code
+
+*Temporarily set expiry to 1 minute for testing:*
 
 ```java
 private static final int VERIFICATION_EXPIRY_MINUTES = 1;
 ```
 
-Sign up → wait → try to verify:
+Sign up → wait 1 minute → try to verify:
 
 **Expected 409**
 ```json
@@ -418,7 +465,7 @@ Sign up → wait → try to verify:
 | 1 | POST /auth/signup | Happy path | 200 |
 | 2 | POST /auth/signup | Validation errors | 400 |
 | 3 | POST /auth/signup | Duplicate email | 400 |
-| 4 | POST /auth/signup | Duplicate username | 400 |
+| 4 | POST /auth/signup | Duplicate name collision | 200 (different suffix) |
 | 5 | POST /auth/login | Unverified account | 403 |
 | 6 | POST /auth/verify | Wrong email | 400 |
 | 7 | POST /auth/verify | Wrong code | 400 |
@@ -431,5 +478,8 @@ Sign up → wait → try to verify:
 | 14 | POST /auth/login | Happy path | 200 |
 | 15 | GET /users/me | Valid token | 200 |
 | 16 | GET /users/me | No token | 401 |
-| 17 | GET /users/me | Bad token | 401 |
-| 18 | POST /auth/verify | Expired code | 409 |
+| 17 | GET /users/me | Invalid token | 401 |
+| 18 | PATCH /users/me/username | Happy path | 200 |
+| 19 | PATCH /users/me/username | Username taken | 400 |
+| 20 | PATCH /users/me/username | No token | 401 |
+| 21 | POST /auth/verify | Expired code | 409 |
