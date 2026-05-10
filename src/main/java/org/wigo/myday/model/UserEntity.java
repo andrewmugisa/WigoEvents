@@ -10,7 +10,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-
 @Setter
 @Getter
 @Entity
@@ -23,10 +22,10 @@ public class UserEntity implements UserDetails {
     private Integer userId;
 
     @Column(unique = true, nullable = false)
-    private String username;
+    private String username; // the "display username" for the user
 
-    @Column(unique = true, nullable = false)
-    private String email;
+    @Column(unique = true, nullable = false, length = 100)
+    private String email; // used for login
 
     @Column(nullable = false)
     private String password;
@@ -59,9 +58,19 @@ public class UserEntity implements UserDetails {
         return List.of();
     }
 
+    /**
+     * This is used by Spring Security for login/authentication
+     */
     @Override
     public String getUsername() {
-        return email;
+        return email; // keep login by email
+    }
+
+    /**
+     * Returns the "actual username" for API responses
+     */
+    public String getUserDisplayName() {
+        return username;
     }
 
     @Override public boolean isAccountNonExpired()     { return true; }

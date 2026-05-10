@@ -1,5 +1,6 @@
 package org.wigo.myday.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,7 +39,7 @@ public class UserController {
     }
 
     @PatchMapping("/me/username")
-    public ResponseEntity<UserResponse> updateUsername(@RequestBody UpdateUsernameDto dto) {
+    public ResponseEntity<UserResponse> updateUsername(@Valid @RequestBody UpdateUsernameDto dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         UserEntity currentUser = (UserEntity) auth.getPrincipal();
 

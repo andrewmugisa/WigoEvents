@@ -1,7 +1,11 @@
 package org.wigo.myday.controller.authentication;
 
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 import org.wigo.myday.dto.*;
 import org.wigo.myday.model.UserEntity;
@@ -10,6 +14,9 @@ import org.wigo.myday.response.LoginResponse;
 import org.wigo.myday.response.UserResponse;
 import org.wigo.myday.service.Jwt.AuthenticationService;
 import org.wigo.myday.service.Jwt.JwtService;
+import org.wigo.myday.service.Jwt.TokenBlacklistService;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/auth")
@@ -17,10 +24,19 @@ public class AuthenticationController {
 
     private final JwtService jwtService;
     private final AuthenticationService authenticationService;
+    private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService) {
-        this.jwtService            = jwtService;
+    public AuthenticationController(
+            JwtService jwtService,
+            AuthenticationService authenticationService,
+            UserDetailsService userDetailsService,
+            TokenBlacklistService tokenBlacklistService
+    ) {
+        this.jwtService = jwtService;
         this.authenticationService = authenticationService;
+        this.userDetailsService = userDetailsService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/signup")
@@ -46,5 +62,26 @@ public class AuthenticationController {
     public ResponseEntity<ApiResponse> resend(@Valid @RequestBody ResendVerificationDto dto) {
         authenticationService.resendVerificationCode(dto.getEmail());
         return ResponseEntity.ok(new ApiResponse("Verification code resent successfully"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().body("Missing token");
+        }
+
+        String token = authHeader.substring(7);
+
+        String username = jwtService.extractUsername(token);
+        UserDetails user = userDetailsService.loadUserByUsername(username);
+
+        Instant expiry = jwtService.extractClaim(token, Claims::getExpiration).toInstant();
+
+        tokenBlacklistService.blacklistToken(token, expiry);
+
+        return ResponseEntity.ok("Logged out successfully");
     }
 }

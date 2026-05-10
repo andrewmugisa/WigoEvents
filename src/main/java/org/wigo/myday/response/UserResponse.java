@@ -8,19 +8,19 @@ import java.time.Instant;
 
 @Getter
 public class UserResponse {
-    private final Integer userId;
-    private final String username;
-    private final String name;
-    private final String email;
-    private final boolean enabled;
-    private final Instant createdAt;
+    private Integer userId;
+    private String name;
+    private String email;
+    private String username;
+    private boolean enabled;
+    private Instant createdAt;
 
     public UserResponse(UserEntity user) {
-        this.userId    = user.getUserId();
-        this.username  = user.getUsername();
-        this.name      = user.getName();
-        this.email     = user.getEmail();
-        this.enabled   = user.isEnabled();
+        this.userId   = user.getUserId();
+        this.name     = user.getName();
+        this.email    = user.getEmail();
+        this.username = user.getUserDisplayName();
+        this.enabled  = user.isEnabled();
         this.createdAt = user.getCreatedAt();
     }
 }
