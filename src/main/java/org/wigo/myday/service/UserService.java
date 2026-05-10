@@ -18,6 +18,30 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    public UserEntity updateUsername(Integer userId, String newUsername) {
+        if (newUsername == null || newUsername.isBlank()) {
+            throw new IllegalArgumentException("Username cannot be blank");
+        }
+
+        String cleaned = newUsername.toLowerCase()
+                .replaceAll("\\s+", "")
+                .replaceAll("[^a-z0-9_]", "");
+
+        if (cleaned.length() < 3) {
+            throw new IllegalArgumentException("Username must be at least 3 characters");
+        }
+
+        if (userRepository.findByUsername(cleaned).isPresent()) {
+            throw new IllegalArgumentException("Username is already taken");
+        }
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setUsername(cleaned);
+        return userRepository.save(user);
+    }
+
 
     //read all users
     public List<UserEntity> allUsers() {
@@ -25,28 +49,4 @@ public class UserService {
         userRepository.findAll().forEach(users::add);
         return users;
     }
-
-
-
-
-
-
-    //create user
-//
-//    //read user data
-//    public Optional<UserEntity> readUserDetails(int id){
-//        return userRepository.findById(id);
-//    }
-//
-//    public Optional<UserEntity> login(String email, String password) {
-//        if (email == null || password == null || email.isEmpty() || password.isEmpty()) {
-//            return Optional.empty();
-//        }
-//
-//        return userRepository.findByEmail(email);
-//    }
-//
-//    //update user
-//    //delete user
-
 }

@@ -1,45 +1,39 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="" />
-    <meta name="author" content="" />
     <title>myDay Homepage</title>
-    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="/css/style.css" />
   </head>
-
   <body>
     <section id="header">
       <div id="app">
-        <h1>Home Page</h1>
+        <h1>My Day Dashboard</h1>
       </div>
     </section>
 
     <section id="homeContent">
       <div id="welcomeMessage">
-        <p>
-          Welcome to My Day! This is your personal dashboard where you can
-          manage your tasks, events, and notes. Stay organized and make the most
-          of your day!
-        </p>
+        <p>Welcome to My Day! This is your personal dashboard.</p>
       </div>
     </section>
+
     <section id="userDetails">
       <div id="userProfile">
-        <ul>
-          <li>Name: John Doe</li>
-          <li>Email: john.doe@example.com</li>
-        </ul>
+        <!-- app.js will populate this -->
       </div>
     </section>
 
     <section id="footer">
       <div id="footerContent">
         <p>&copy; 2026 My Day. All rights reserved.</p>
+        <button id="logoutButton">Logout</button>
       </div>
     </section>
+
+    <script src="/js/app.js" defer></script>
+    <script src="/js/homeScript.js" defer></script>
   </body>
-  <script type="module" src="../js/app.js"></script>
 </html>

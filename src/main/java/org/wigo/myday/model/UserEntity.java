@@ -3,6 +3,7 @@ package org.wigo.myday.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -13,10 +14,12 @@ import java.util.List;
 @Setter
 @Getter
 @Entity
-@Table(name="users")
+@Table(name = "users")
 public class UserEntity implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Integer userId;
 
     @Column(unique = true, nullable = false)
@@ -28,6 +31,8 @@ public class UserEntity implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    private String name;
+
     private boolean enabled;
 
     @Column(name = "verification_code")
@@ -36,61 +41,31 @@ public class UserEntity implements UserDetails {
     @Column(name = "verification_expiration")
     private Instant verificationCodeExpiration;
 
-    private String name;
-
-    @Column(name = "created_at", updatable = false, insertable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;
 
-
-    public UserEntity(String username, String email, String password, String name, Instant createdAt) {
+    public UserEntity(String username, String email, String password, String name) {
         this.username = username;
         this.email = email;
         this.password = password;
         this.name = name;
-        this.createdAt = createdAt;
-    }
-
-    public UserEntity(String username, String email, String password) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
     }
 
     public UserEntity() {}
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities(){
-        return List.of(); //because we are not doing role_based authentication
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
+    public String getUsername() {
+        return email;
     }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    @Override
-    public String toString() {
-        return "UserEntity{" +
-                "userId=" + userId +
-                ", email='" + email + '\'' +
-                ", name='" + name + '\'' +
-                ", password='" + password + '\'' +
-                ", createdDate=" + createdAt +
-                '}';
-    }
+    @Override public boolean isAccountNonExpired()     { return true; }
+    @Override public boolean isAccountNonLocked()      { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override public boolean isEnabled()               { return enabled; }
 }

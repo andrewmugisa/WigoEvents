@@ -1,5 +1,7 @@
 package org.wigo.myday.service.Jwt;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -9,25 +11,21 @@ import org.wigo.myday.dto.RegisterUserDto;
 import org.wigo.myday.dto.VerifyUserDto;
 import org.wigo.myday.model.UserEntity;
 import org.wigo.myday.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Optional;
+import java.time.temporal.ChronoUnit;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 public class AuthenticationService {
+
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    private static final int VERIFICATION_EXPIRY_MINUTES = 15;
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
-
     private final AuthenticationManager authenticationManager;
-
     private final EmailService emailService;
 
     public AuthenticationService(
@@ -36,108 +34,139 @@ public class AuthenticationService {
             AuthenticationManager authenticationManager,
             EmailService emailService
     ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+        this.userRepository      = userRepository;
+        this.passwordEncoder     = passwordEncoder;
         this.authenticationManager = authenticationManager;
-        this.emailService = emailService;
+        this.emailService        = emailService;
     }
 
-    //signup/Register
-    public UserEntity register(RegisterUserDto regInput) {
-        UserEntity userEntity = new UserEntity(regInput.getUsername(), regInput.getEmail(), passwordEncoder.encode(regInput.getPassword()));
-        userEntity.setVerificationCode(generateVerificationCode());
-        userEntity.setVerificationCodeExpiration(
-                LocalDateTime.now().plusMinutes(15)
-                        .atZone(ZoneId.systemDefault()) // or ZoneOffset.UTC
-                        .toInstant()
-        );        userEntity.setEnabled(false);
-        sendVerificationEmail(userEntity);
-        return userRepository.save(userEntity);
-    }
-
-    public UserEntity authenticate(LoginUserDto loginInput) {
-        UserEntity userEntity = userRepository.findByEmail(loginInput.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if(!userEntity.isEnabled()) {
-            throw new RuntimeException("Account not verified. Please verify your account");
+    public UserEntity register(RegisterUserDto input) {
+        if (userRepository.findByEmail(input.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
         }
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginInput.getEmail(),
-                        loginInput.getPassword()
-                )
+        String username = generateUniqueUsername(input.getName()); // ← auto-generate
+
+        UserEntity user = new UserEntity(
+                username,
+                input.getEmail(),
+                passwordEncoder.encode(input.getPassword()),
+                input.getName()
         );
-        return userEntity;
+        user.setVerificationCode(generateVerificationCode());
+        user.setVerificationCodeExpiration(Instant.now().plus(VERIFICATION_EXPIRY_MINUTES, ChronoUnit.MINUTES));
+        user.setEnabled(false);
+
+        UserEntity saved = userRepository.save(user);
+        sendVerificationEmail(saved);
+        return saved;
+    }
+
+    private String generateUniqueUsername(String name) {
+        // "My Full Name" → "myfullname"
+        String base = name.toLowerCase()
+                .replaceAll("\\s+", "")       // remove spaces
+                .replaceAll("[^a-z0-9]", ""); // remove special chars
+
+        if (base.isBlank()) base = "user";
+
+        String candidate = base;
+        int attempts = 0;
+
+        // Keep trying until unique, suffix with random 4-digit number
+        while (userRepository.findByUsername(candidate).isPresent()) {
+            candidate = base + "_" + (1000 + new Random().nextInt(9000));
+            if (++attempts > 10) {
+                // Fallback to UUID suffix if extremely unlucky
+                candidate = base + "_" + UUID.randomUUID().toString().substring(0, 6);
+                break;
+            }
+        }
+
+        return candidate;
+    }
+
+    public UserEntity authenticate(LoginUserDto input) {
+        // Let AuthenticationManager handle bad credentials — it throws AuthenticationException
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(input.getEmail(), input.getPassword())
+        );
+
+        UserEntity user = userRepository.findByEmail(input.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!user.isEnabled()) {
+            throw new IllegalStateException("Account not verified. Please check your email");
+        }
+
+        return user;
     }
 
     public void verifyUser(VerifyUserDto input) {
-        Optional<UserEntity> optionalUser = userRepository.findByEmail(input.getEmail());
-        if(optionalUser.isPresent()) {
-            UserEntity userEntity = optionalUser.get();
+        UserEntity user = userRepository.findByEmail(input.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-            if(userEntity.getVerificationCode().equals(input.getVerificationCode())) {
-                userEntity.setEnabled(true);
-                userEntity.setVerificationCode(null);
-                userEntity.setVerificationCodeExpiration(null);
-                userRepository.save(userEntity);
-            }else{
-                throw new RuntimeException("Verification code does not match");
-            }
-        }else{
-            throw new RuntimeException("User not found");
+        if (user.isEnabled()) {
+            throw new IllegalStateException("Account is already verified");
         }
+
+        if (user.getVerificationCodeExpiration() == null
+                || Instant.now().isAfter(user.getVerificationCodeExpiration())) {
+            throw new IllegalStateException("Verification code has expired. Please request a new one");
+        }
+
+        if (!user.getVerificationCode().equals(input.getVerificationCode())) {
+            throw new IllegalArgumentException("Verification code does not match");
+        }
+
+        user.setEnabled(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiration(null);
+        userRepository.save(user);
     }
 
     public void resendVerificationCode(String email) {
-        Optional<UserEntity> optionalUser = userRepository.findByEmail(email);
-        if(optionalUser.isPresent()) {
-            UserEntity userEntity = optionalUser.get();
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-            if(userEntity.isEnabled()){
-                throw new RuntimeException("Account is already verified");
-            }
-
-            userEntity.setVerificationCode(generateVerificationCode());
-            userEntity.setVerificationCodeExpiration(Instant.from(LocalDateTime.now().plusMinutes(15))); //userEntity.setVerificationCodeExpiration(LocalDateTime.now().plusMinutes(15));
-            sendVerificationEmail(userEntity);
-            userRepository.save(userEntity);
-        }else{
-            throw new RuntimeException("User not found");
+        if (user.isEnabled()) {
+            throw new IllegalStateException("Account is already verified");
         }
+
+        user.setVerificationCode(generateVerificationCode());
+        user.setVerificationCodeExpiration(Instant.now().plus(VERIFICATION_EXPIRY_MINUTES, ChronoUnit.MINUTES));
+        userRepository.save(user);
+        sendVerificationEmail(user);
     }
 
-    public void sendVerificationEmail(UserEntity userEntity) {
-        String subject = "Account Verification";
-        String verificationCode = userEntity.getVerificationCode();
-        String htmlMessage = "<html>"
-                + "<body style=\"font-family: Arial, sans-serif; margin:0; padding:0; background-color: #f5f5f5;\">"
-                + "<div style=\"max-width: 600px; margin: 0 auto; padding: 20px;\">"
-                + "<h2 style=\"color: #333; text-align: center;\">Welcome to Our App!</h2>"
-                + "<p style=\"font-size: 16px; color: #555; text-align: center;\">Please enter the verification code below to continue:</p>"
-                + "<div style=\"background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center;\">"
-                + "<h3 style=\"color: #333; margin-bottom: 15px;\">Your Verification Code</h3>"
-                + "<p style=\"font-size: 24px; font-weight: bold; color: #007bff; letter-spacing: 4px; user-select: all;\">"
-                + verificationCode
-                + "</p>"
-                + "</div>"
-                + "<p style=\"font-size: 14px; color: #888; text-align: center; margin-top: 20px;\">If you did not request this code, please ignore this email.</p>"
-                + "</div>"
-                + "</body>"
-                + "</html>";
+    private void sendVerificationEmail(UserEntity user) {
+        String subject = "Your Verification Code";
+        String code    = user.getVerificationCode();
+        String html    = """
+                <html>
+                <body style="font-family: Arial, sans-serif; background-color:#f5f5f5; margin:0; padding:0;">
+                  <div style="max-width:600px; margin:0 auto; padding:20px;">
+                    <h2 style="color:#333; text-align:center;">Welcome to myDay!</h2>
+                    <p style="font-size:16px; color:#555; text-align:center;">Use the code below to verify your account:</p>
+                    <div style="background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); text-align:center;">
+                      <p style="font-size:28px; font-weight:bold; color:#007bff; letter-spacing:6px;">%s</p>
+                    </div>
+                    <p style="font-size:13px; color:#888; text-align:center; margin-top:20px;">
+                      This code expires in %d minutes. If you didn't request this, ignore this email.
+                    </p>
+                  </div>
+                </body>
+                </html>
+                """.formatted(code, VERIFICATION_EXPIRY_MINUTES);
 
-        try{
-            emailService.sendVerificationEmail(userEntity.getEmail(), subject, htmlMessage);
-        } catch (Exception e){
-            logger.error("Failed to send verification email to {}: {}", userEntity.getEmail(), e.getMessage(), e);
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), subject, html);
+        } catch (Exception e) {
+            logger.error("Failed to send verification email to {}: {}", user.getEmail(), e.getMessage(), e);
         }
     }
 
     private String generateVerificationCode() {
-        Random random = new Random();
-        int code = random.nextInt(900000) + 100000;
-        return String.valueOf(code);
+        return String.valueOf(new Random().nextInt(900000) + 100000);
     }
-
 }

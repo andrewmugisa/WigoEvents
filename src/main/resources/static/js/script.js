@@ -1,36 +1,42 @@
-import { loginPageAlert, loginUser } from "./app.js";
+// script.js
+// Handles login page (index.html)
 
-const emailInput = document.getElementById("emailInput");
-const passwordInput = document.getElementById("passwordInput");
+document.addEventListener("DOMContentLoaded", () => {
+  // Redirect to home if already logged in
+  Auth.redirectIfAuthenticated();
 
-const loginBtn = document.getElementById("loginButton");
-const registerBtn = document.getElementById("registerButton");
+  // ── Login ──────────────────────────────────────────────────────────────────
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-let email = "";
-let password = "";
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
 
-loginBtn.addEventListener("click", function () {
-  console.log("Login button clicked");
+      const loginButton = document.getElementById("loginButton");
+      loginButton.disabled = true;
+      loginButton.textContent = "Logging in...";
 
-  email = emailInput.value;
-  password = passwordInput.value;
-
-  while (email.length === 0 || password.length === 0) {
-    loginPageAlert.innerHTML =
-      "<p id='AlertW'>Please enter both email and password.</p><style>#AlertW { color: red; margin: 0;padding: 10px; border: 1px solid red; }</style>";
-    return;
+      try {
+        const data = await API.login({ email, password });
+        Auth.saveToken(data.token, data.expiresIn);
+        window.location.href = "home.html";
+      } catch (error) {
+        alert("Login failed:\n" + error.message);
+        console.error("Login error:", error);
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = "Login";
+      }
+    });
   }
 
-  loginUser(email, password);
-
-  emailInput.value = "";
-  passwordInput.value = "";
-  console.log("Email: " + email);
-  console.log("Password: " + password);
-});
-
-registerBtn.addEventListener("click", function () {
-  console.log("Register button clicked");
-
-  loginUser(email, password);
+  // ── Register redirect ──────────────────────────────────────────────────────
+  const registerButton = document.getElementById("registerButton");
+  if (registerButton) {
+    registerButton.addEventListener("click", () => {
+      window.location.href = "signup.html";
+    });
+  }
 });

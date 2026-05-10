@@ -1,40 +1,48 @@
 package org.wigo.myday.controller;
 
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.wigo.myday.dto.UpdateUsernameDto;
 import org.wigo.myday.model.UserEntity;
+import org.wigo.myday.response.UserResponse;
 import org.wigo.myday.service.UserService;
 
 import java.util.List;
 
-
-@CrossOrigin(origins = "http://127.0.0.1:5500")
-@RequestMapping("/users")
 @RestController
+@RequestMapping("/users")
 public class UserController {
+
     private final UserService userService;
-    
-    @Autowired
+
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserEntity> authenticatedUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        return new ResponseEntity<>(userEntity, HttpStatus.OK);
+    public ResponseEntity<UserResponse> authenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity user = (UserEntity) auth.getPrincipal();
+        return ResponseEntity.ok(new UserResponse(user));
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<UserEntity>> getAllUsers() {
-        List<UserEntity> users = userService.allUsers();
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userService.allUsers()
+                .stream()
+                .map(UserResponse::new)
+                .toList();
         return ResponseEntity.ok(users);
     }
 
+    @PatchMapping("/me/username")
+    public ResponseEntity<UserResponse> updateUsername(@RequestBody UpdateUsernameDto dto) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity currentUser = (UserEntity) auth.getPrincipal();
+
+        UserEntity updated = userService.updateUsername(currentUser.getUserId(), dto.getUsername());
+        return ResponseEntity.ok(new UserResponse(updated));
+    }
 }
