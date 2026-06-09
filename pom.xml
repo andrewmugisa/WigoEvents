@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.wigo</groupId>
-    <artifactId>myDay</artifactId>
+    <artifactId>wigoEvents</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>myDay</name>
     <description>myDay</description>
