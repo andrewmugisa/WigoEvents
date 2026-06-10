@@ -3,7 +3,7 @@ package org.wigo.wigoevents.adapter;
 import org.springframework.stereotype.Component;
 import org.wigo.auth.model.AuthUser;
 import org.wigo.auth.model.AuthUserFactory;
-import org.wigo.wigoevents.model.UserEntity;
+import org.wigo.wigoevents.user.UserEntity;
 
 @Component
 public class UserEntityFactory implements AuthUserFactory {
