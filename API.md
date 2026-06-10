@@ -1,3 +1,7 @@
+📖 **Docs:** [README](README.md) · [API Reference](API.md)
+
+---
+
 # WigoEvents API Reference
 
 Full request/response documentation for every endpoint.
