@@ -1,3 +1,7 @@
+📖 **Docs:** [README](README.md) · [API Reference](API.md)
+
+---
+
 # WigoEvents
 
 A Spring Boot application for event management, built on top of the [`spring-auth`](https://github.com/andrewmugisa/Spring_auth) shared authentication library.
