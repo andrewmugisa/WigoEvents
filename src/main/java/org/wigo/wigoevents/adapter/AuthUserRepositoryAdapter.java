@@ -3,8 +3,8 @@ package org.wigo.wigoevents.adapter;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Repository;
 import org.wigo.auth.repository.AuthUserRepository;
-import org.wigo.wigoevents.model.UserEntity;
-import org.wigo.wigoevents.repository.UserRepository;
+import org.wigo.wigoevents.user.UserEntity;
+import org.wigo.wigoevents.user.UserRepository;
 import java.util.Optional;
 
 @Repository
