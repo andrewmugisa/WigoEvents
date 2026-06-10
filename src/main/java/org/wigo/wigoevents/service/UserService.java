@@ -3,6 +3,7 @@ package org.wigo.wigoevents.service;
 import org.springframework.stereotype.Service;
 import org.wigo.wigoevents.model.UserEntity;
 import org.wigo.wigoevents.repository.UserRepository;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +28,12 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setUsername(cleaned);
         return userRepository.save(user);
+    }
+
+    public void deleteUser(Integer userId) {
+        if (!userRepository.existsById(userId))
+            throw new RuntimeException("User not found");
+        userRepository.deleteById(userId);
     }
 
     public List<UserEntity> allUsers() {
