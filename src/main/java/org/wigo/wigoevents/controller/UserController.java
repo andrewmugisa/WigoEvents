@@ -5,10 +5,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.wigo.auth.response.ApiResponse;
 import org.wigo.wigoevents.dto.UpdateUsernameDto;
 import org.wigo.wigoevents.model.UserEntity;
 import org.wigo.wigoevents.response.UserResponse;
 import org.wigo.wigoevents.service.UserService;
+
 import java.util.List;
 
 @RestController
@@ -17,7 +19,9 @@ public class UserController {
 
     private final UserService userService;
 
-    public UserController(UserService userService) { this.userService = userService; }
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> authenticatedUser() {
@@ -36,5 +40,13 @@ public class UserController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         UserEntity currentUser = (UserEntity) auth.getPrincipal();
         return ResponseEntity.ok(new UserResponse(userService.updateUsername(currentUser.getUserId(), dto.getUsername())));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse> deleteAccount() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity currentUser = (UserEntity) auth.getPrincipal();
+        userService.deleteUser(currentUser.getUserId());
+        return ResponseEntity.ok(new ApiResponse("Account deleted successfully."));
     }
 }
