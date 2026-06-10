@@ -1,55 +1,72 @@
----
+# WigoEvents
 
-# Auth Layer — Manual Test Guide (Final)
-
----
-
-## 1. Signup — Happy Path
-
-**Endpoint:** `POST /auth/signup`
-
-**Request:**
-
-```json
-{
-  "email": "testEmail@test.com",
-  "password": "123456",
-  "name": "Test User"
-}
-```
-
-**Expected 200**
-
-```json
-{
-  "userId": 1,
-  "username": "testuser_4821",  // auto-generated display username
-  "name": "Test User",
-  "email": "testEmail@test.com",
-  "enabled": false,
-  "createdAt": "2026-05-10T00:00:00Z"
-}
-```
-
-✅ No `password`, `verificationCode`, `verificationCodeExpiration` in response
-✅ `username` is auto-generated
-✅ `enabled` is `false` until verification
+A Spring Boot application for event management, built on top of the [`spring-auth`](https://github.com/andrewmugisa/Spring_auth) shared authentication library.
 
 ---
 
-## 2. Signup — Validation Errors
+## Architecture
 
-**Request:**
+Auth is handled entirely by the `spring-auth` library — this app owns only business logic, its own database tables, and the glue code that connects the two.
+
+```
+WigoEvents
+├── user/          ← user management feature
+├── events/        ← (coming soon)
+├── bookings/      ← (coming soon)
+└── adapter/       ← glue between this app and spring-auth
+```
+
+Adding a new feature = add a new package. Each package owns its own entity, repository, service, controller, DTOs, and responses. Nothing is shared across features except through explicit imports.
+
+---
+
+## Stack
+
+- Java 17 · Spring Boot 4.0.6
+- PostgreSQL · Spring Data JPA · Hibernate
+- JWT authentication via `spring-auth` library
+- Lombok · Springdoc OpenAPI (Swagger UI)
+- Dotenv (`spring-dotenv`) for `.env` support
+
+---
+
+## API endpoints
+
+### Auth — provided by `spring-auth` (no code needed in this repo)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/signup` | Public | Register with name, email, password |
+| POST | `/auth/login` | Public | Login, returns JWT token |
+| POST | `/auth/verify` | Public | Verify account with 6-digit email code |
+| POST | `/auth/resend` | Public | Resend verification code |
+| POST | `/auth/logout` | Bearer | Blacklist token server-side |
+
+### User — owned by this app
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/users/me` | Bearer | Get current authenticated user |
+| GET | `/users/` | Bearer | Get all users |
+| PATCH | `/users/me/username` | Bearer | Update display username |
+| DELETE | `/users/me` | Bearer | Permanently delete account |
+
+---
+
+## Error response format
+
+All errors follow this consistent shape (from `spring-auth`'s `GlobalExceptionHandler`):
 
 ```json
 {
-  "email": "not-an-email",
-  "password": "123",
-  "name": ""
+  "timestamp": "2026-06-10T03:47:29.051Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Email is already registered"
 }
 ```
 
-**Expected 400**
+Validation errors include a `details` field:
 
 ```json
 {
@@ -59,364 +76,134 @@
   "message": "Validation failed",
   "details": {
     "email": "Invalid email format",
-    "password": "Password must be at least 6 characters",
-    "name": "Name is required"
+    "password": "Password must be at least 6 characters"
   }
 }
 ```
 
 ---
 
-## 3. Signup — Duplicate Email
+## Setup
 
-**Request:** *(same email as test 1)*
+### Prerequisites
+- Java 17+
+- PostgreSQL running locally
+- `spring-auth` installed to local Maven repo (see below)
 
-```json
-{
-  "email": "testEmail@test.com",
-  "password": "123456",
-  "name": "Test Two"
-}
+### Step 1 — Install the auth library
+
+```bash
+cd ~/IdeaProjects/Spring_auth
+./mvnw clean install
 ```
 
-**Expected 400**
+### Step 2 — Create a `.env` file
 
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Email is already registered"
-}
+Copy `env.example` to `.env` and fill in your values:
+
+```bash
+cp env.example .env
 ```
+
+```properties
+# Database
+PSQL_DATABASE=wigoEventsDB
+PSQL_USER=postgres
+PSQL_PASSWORD=your-password
+
+# JWT
+JWT_SECRET_KEY=your-base64-secret-key
+JWT_EXPIRATION_MS=3600000
+
+# Mail (Gmail SMTP)
+MAIL_SENDER_SERVER=smtp.gmail.com
+MAIL_SENDER_PORT=587
+MAIL_USE_TLS=true
+SUPPORT_EMAIL=your-email@gmail.com
+SUPPORT_EMAIL_APP_PASSWORD=your-app-password
+
+# CORS
+LOCALHOST_URL=http://127.0.0.1:5500
+LOCAL_TEST_URL=http://localhost:3000
+```
+
+### Step 3 — Run
+
+```bash
+./mvnw spring-boot:run
+```
+
+App starts on `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagger-ui/index.html`.
 
 ---
 
-## 4. Signup — Name Collision
+## How auth is wired in
 
-* Register two users with the same `name`.
-* Second signup should get a **unique auto-generated username**.
+The `spring-auth` library needs two things from this app:
 
-```json
-{ "email": "user1@gmail.com", "password": "123456", "name": "John Doe" }
-```
-
-→ `username`: `johndoe`
-
-```json
-{ "email": "user2@gmail.com", "password": "123456", "name": "John Doe" }
-```
-
-→ `username`: `johndoe_XXXX`
-
-✅ Uniqueness handled server-side; no conflict errors
-
----
-
-## 5. Login — Unverified Account
-
-**Request:**
-
-```json
-{
-  "email": "testEmail@test.com",
-  "password": "123456"
-}
-```
-
-**Expected 403**
-
-```json
-{
-  "timestamp": "...",
-  "status": 403,
-  "error": "Forbidden",
-  "message": "Account not verified. Please check your email"
-}
-```
-
----
-
-## 6–9. Verify Account
-
-### 6. Wrong Email
-
-```json
-{
-  "email": "wrong@gmail.com",
-  "verificationCode": "123456"
-}
-```
-
-**Expected 400**
-
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "User not found"
-}
-```
-
-### 7. Wrong Code
-
-```json
-{
-  "email": "testEmail@test.com",
-  "verificationCode": "000000"
-}
-```
-
-**Expected 400**
-
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Verification code does not match"
-}
-```
-
-### 8. Happy Path
-
-```json
-{
-  "email": "testEmail@test.com",
-  "verificationCode": "XXXXXX" // use actual code from email
-}
-```
-
-**Expected 200**
-
-```json
-{
-  "message": "Account verified successfully"
-}
-```
-
-### 9. Already Verified
-
-```json
-{
-  "email": "testEmail@test.com",
-  "verificationCode": "XXXXXX"
-}
-```
-
-**Expected 409**
-
-```json
-{
-  "timestamp": "...",
-  "status": 409,
-  "error": "Conflict",
-  "message": "Account is already verified"
-}
-```
-
----
-
-## 10–12. Resend Verification Code
-
-### 10. User Not Found
-
-```json
-{ "email": "nobody@gmail.com" }
-```
-
-**Expected 400**
-
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "User not found"
-}
-```
-
-### 11. Already Verified
-
-```json
-{ "email": "testEmail@test.com" }
-```
-
-**Expected 409**
-
-```json
-{
-  "timestamp": "...",
-  "status": 409,
-  "error": "Conflict",
-  "message": "Account is already verified"
-}
-```
-
-### 12. Happy Path
-
-* Sign up a fresh account (unverified)
-* Send:
-
-```json
-{ "email": "fresh@gmail.com" }
-```
-
-**Expected 200**
-
-```json
-{
-  "message": "Verification code resent successfully"
-}
-```
-
-✅ Old code invalidated
-
----
-
-## 13–14. Login
-
-### 13. Wrong Password
-
-```json
-{
-  "email": "testEmail@test.com",
-  "password": "wrongpassword"
-}
-```
-
-**Expected 401**
-
-```json
-{
-  "timestamp": "...",
-  "status": 401,
-  "error": "Unauthorized",
-  "message": "Invalid email or password"
-}
-```
-
-### 14. Happy Path
-
-```json
-{
-  "email": "testEmail@test.com",
-  "password": "123456"
-}
-```
-
-**Expected 200**
-
-```json
-{
-  "token": "eyJ...",
-  "expiresIn": 3600000
-}
-```
-
-✅ Save token for authenticated endpoints
-
----
-
-## 15–17. Get Current User
-
-**Endpoint:** `GET /users/me`
-**Header:** `Authorization: Bearer <token>`
-
-* **15. Valid token → 200**
-* **16. No token → 401**
-* **17. Invalid token → 401**
-
-✅ Response excludes sensitive fields
-
----
-
-## 18–20. Update Username
-
-**Endpoint:** `PATCH /users/me/username`
-**Header:** `Authorization: Bearer <token>`
-
-### 18. Happy Path
-
-```json
-{ "username": "mynewusername" }
-```
-
-**Expected 200**
-
-```json
-{
-  "userId": 1,
-  "username": "mynewusername",
-  "name": "Test User",
-  "email": "testEmail@test.com",
-  "enabled": true,
-  "createdAt": "2026-05-10T00:00:00Z"
-}
-```
-
-### 19. Username Taken
-
-```json
-{ "username": "mynewusername" }
-```
-
-**Expected 400**
-
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Username is already taken"
-}
-```
-
-### 20. No Token → 401
-
----
-
-## 21. Expired Verification Code
-
-* Temporarily set expiry to 1 minute for testing:
+**`adapter/AuthUserRepositoryAdapter.java`** — bridges the JPA `UserRepository` to the library's `AuthUserRepository` interface:
 
 ```java
-private static final int VERIFICATION_EXPIRY_MINUTES = 1;
-```
-
-* Sign up → wait → verify
-
-**Expected 409**
-
-```json
-{
-  "timestamp": "...",
-  "status": 409,
-  "error": "Conflict",
-  "message": "Verification code has expired. Please request a new one"
+@Repository
+public class AuthUserRepositoryAdapter implements AuthUserRepository {
+    // delegates findByEmail, findByUsername, findByVerificationCode, save
+    // to the JPA UserRepository
 }
 ```
 
+**`adapter/UserEntityFactory.java`** — tells the library how to create a new user:
+
+```java
+@Component
+public class UserEntityFactory implements AuthUserFactory {
+    @Override
+    public AuthUser create(String username, String email, String password, String name) {
+        return new UserEntity(username, email, password, name);
+    }
+}
+```
+
+The `@SpringBootApplication` on `WigoEventsApplication` excludes Spring Boot's default security auto-configs to prevent a filter chain conflict with the library's own `SecurityConfiguration`.
+
 ---
 
-### ✅ Pass Criteria Summary
+## Adding a new feature
 
-| #  | Endpoint          | Scenario                 | Status |
-| -- | ----------------- | ------------------------ | ------ |
-| 1  | POST /auth/signup | Happy path               | 200    |
-| 2  | POST /auth/signup | Validation errors        | 400    |
-| 3  | POST /auth/signup | Duplicate email          | 400    |
-| 4  | POST /auth/signup | Duplicate name collision | 200    |
-| 5  | POST /auth/login  | Unverified account       | 403    |
-| 6  | POST /auth/verify | Wrong email              | 400    |
-| 7  | POST /auth/verify | Wrong code               | 400    |
-| 8  | POST /auth/verify | Happy path               | 200    |
-| 9  | POST /auth/verify | Already verified         | 409    |
-| 10 | POST /auth/resend | User not found           | 400    |
-| 11 | POST /auth/resend | Already verified         | 409    |
-| 12 | POST /auth/resend | Happy path               | 200    |
-| 13 | POST /auth/login  | Wrong password           | 401    |
-| 14 | POST /auth/login  | Happy path               | 200    |
-| 15 | GET /users/me     | Valid token              | 200    |
-| 16 | GET /users/me     |                          |        |
+Create a new package, e.g. `events/`:
+
+```
+src/main/java/org/wigo/wigoevents/events/
+├── EventEntity.java       ← @Entity, your DB table
+├── EventRepository.java   ← JpaRepository
+├── EventService.java      ← business logic
+├── EventController.java   ← REST endpoints
+├── EventResponse.java     ← what the API returns
+└── CreateEventDto.java    ← what the API accepts
+```
+
+That's it. No changes to `spring-auth`, no changes to `adapter/`, no changes to `user/`.
+
+---
+
+## Multi-device login
+
+This app uses stateless JWT. The server does not track active sessions — logging in on multiple devices issues independent tokens, all valid simultaneously until they expire. This is intentional. Single-session enforcement would require a `sessions` table and is not currently implemented.
+
+---
+
+## Project structure
+
+```
+src/main/java/org/wigo/wigoevents/
+├── WigoEventsApplication.java     ← main class, excludes default security auto-configs
+├── user/
+│   ├── UserEntity.java            ← extends AuthUser, add app-specific fields here
+│   ├── UserRepository.java        ← JPA repo
+│   ├── UserService.java           ← updateUsername, deleteUser, allUsers
+│   ├── UserController.java        ← GET/PATCH/DELETE /users/*
+│   ├── UserResponse.java          ← API response shape
+│   └── UpdateUsernameDto.java     ← PATCH /users/me/username request body
+└── adapter/
+    ├── AuthUserRepositoryAdapter.java  ← bridges UserRepository → AuthUserRepository
+    └── UserEntityFactory.java          ← tells spring-auth how to create UserEntity
+```
