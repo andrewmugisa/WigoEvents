@@ -1,80 +1,20 @@
 package org.wigo.myday.model;
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import org.wigo.auth.model.AuthUser;
 
-import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-@Setter
-@Getter
 @Entity
 @Table(name = "users")
-public class UserEntity implements UserDetails {
+public class UserEntity extends AuthUser {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Integer userId;
-
-    @Column(unique = true, nullable = false)
-    private String username; // the "display username" for the user
-
-    @Column(unique = true, nullable = false, length = 100)
-    private String email; // used for login
-
-    @Column(nullable = false)
-    private String password;
-
-    private String name;
-
-    private boolean enabled;
-
-    @Column(name = "verification_code")
-    private String verificationCode;
-
-    @Column(name = "verification_expiration")
-    private Instant verificationCodeExpiration;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false, nullable = false)
-    private Instant createdAt;
+    // Add wigo_events-specific fields here
 
     public UserEntity(String username, String email, String password, String name) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.name = name;
+        super(username, email, password, name);
     }
 
-    public UserEntity() {}
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+    public UserEntity() {
+        super();
     }
-
-    /**
-     * This is used by Spring Security for login/authentication
-     */
-    @Override
-    public String getUsername() {
-        return email; // keep login by email
-    }
-
-    /**
-     * Returns the "actual username" for API responses
-     */
-    public String getUserDisplayName() {
-        return username;
-    }
-
-    @Override public boolean isAccountNonExpired()     { return true; }
-    @Override public boolean isAccountNonLocked()      { return true; }
-    @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled()               { return enabled; }
 }
