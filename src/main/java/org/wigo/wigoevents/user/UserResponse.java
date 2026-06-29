@@ -2,10 +2,11 @@ package org.wigo.wigoevents.user;
 
 import lombok.Getter;
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 public class UserResponse {
-    private Integer userId;
+    private UUID userId;
     private String name;
     private String email;
     private String username;

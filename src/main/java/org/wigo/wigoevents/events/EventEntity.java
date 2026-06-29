@@ -17,7 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "events")
-public abstract class EventEntity {
+public class EventEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name= "event_id", updatable = false, nullable = false)
@@ -43,7 +43,7 @@ public abstract class EventEntity {
     private OffsetDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     @Builder.Default
     private EventStatus status = EventStatus.DRAFT;
 
@@ -62,6 +62,7 @@ public abstract class EventEntity {
         this.eventStartDate = eventStartDate;
         this.eventEndDate = eventEndDate;
         this.capacity = capacity;
+        this.status = EventStatus.DRAFT;
     }
 
     public EventEntity() {}

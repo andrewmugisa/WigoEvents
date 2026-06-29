@@ -1,6 +1,7 @@
 package org.wigo.wigoevents.events;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,10 +21,10 @@ public class CreateEventDto {
     //private String category;
     //private String categoryName;
 
-    @NotBlank(message = "Event Start Date cannot be empty")
+    @NotNull(message = "Event Start Date cannot be empty")
     private OffsetDateTime eventStartDate;
 
-    @NotBlank(message = "Event End Date cannot be empty")
+    @NotNull(message = "Event End Date cannot be empty")
     private OffsetDateTime eventEndDate;
 
     private int capacity;

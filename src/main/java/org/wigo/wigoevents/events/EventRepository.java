@@ -15,6 +15,6 @@ public interface EventRepository extends JpaRepository<EventEntity, UUID> {
     //search by location
     EventEntity findByEventNameAndStatus(String EventName, EventStatus status);
 
-    @Override
-    EventEntity save(EventEntity event);
+    //@Override
+   // EventEntity save(EventEntity event);
 }

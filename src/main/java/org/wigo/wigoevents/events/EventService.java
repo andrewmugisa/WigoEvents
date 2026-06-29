@@ -5,16 +5,16 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 import org.wigo.wigoevents.user.UserEntity;
 
+@Service
 public class EventService {
     private final EventFactory eventFactory;
-    private final UserEntity userEntity;
     private final EventRepository eventRepository;
 
-    public EventService(EventFactory eventFactory, UserEntity userEntity, EventRepository eventRepository) {
+    public EventService(EventFactory eventFactory, EventRepository eventRepository) {
         this.eventFactory = eventFactory;
-        this.userEntity = userEntity;
         this.eventRepository = eventRepository;
     }
 
@@ -33,11 +33,10 @@ public class EventService {
                 input.getEventEndDate(),
                 input.getCapacity()
         );
-        event.setCreatedAt(OffsetDateTime.from(Instant.now()));
+
         event.setCreatedBy(currentUser);
 
-        EventEntity saved = (EventEntity) eventRepository.save(event);
-        return null;
+        return eventRepository.save(event);
     }
 
     //Read

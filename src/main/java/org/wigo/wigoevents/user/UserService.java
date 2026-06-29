@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -14,7 +15,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public UserEntity updateUsername(Integer userId, String newUsername) {
+    public UserEntity updateUsername(UUID userId, String newUsername) {
         if (newUsername == null || newUsername.isBlank())
             throw new IllegalArgumentException("Username cannot be blank");
         String cleaned = newUsername.toLowerCase().replaceAll("\\s+", "").replaceAll("[^a-z0-9_]", "");
@@ -28,7 +29,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public void deleteUser(Integer userId) {
+    public void deleteUser(UUID userId) {
         if (!userRepository.existsById(userId))
             throw new RuntimeException("User not found");
         userRepository.deleteById(userId);
