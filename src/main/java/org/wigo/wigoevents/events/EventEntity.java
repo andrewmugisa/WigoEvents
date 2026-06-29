@@ -1,6 +1,8 @@
 package org.wigo.wigoevents.events;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -9,18 +11,13 @@ import org.wigo.wigoevents.user.UserEntity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+@Builder
 @Getter
 @Setter
-
+@AllArgsConstructor
 @Entity
 @Table(name = "events")
 public abstract class EventEntity {
-    public enum EventStatus {
-        DRAFT,
-        PUBLISHED,
-        CANCELLED
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name= "event_id", updatable = false, nullable = false)
@@ -46,8 +43,9 @@ public abstract class EventEntity {
     private OffsetDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "event_status", nullable = false)
-    private EventStatus eventStatus = EventStatus.DRAFT;
+    @Column(nullable = false)
+    @Builder.Default
+    private EventStatus status = EventStatus.DRAFT;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
