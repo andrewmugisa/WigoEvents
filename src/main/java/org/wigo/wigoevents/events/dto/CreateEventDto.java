@@ -1,4 +1,4 @@
-package org.wigo.wigoevents.events;
+package org.wigo.wigoevents.events.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
