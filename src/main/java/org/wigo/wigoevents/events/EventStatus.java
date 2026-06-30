@@ -1,5 +1,5 @@
 package org.wigo.wigoevents.events;
 
 public enum EventStatus {
-    DRAFT, PUBLISHED, CANCELLED
+    DRAFT, PUBLISHED, CANCELLED, COMPLETED
 }

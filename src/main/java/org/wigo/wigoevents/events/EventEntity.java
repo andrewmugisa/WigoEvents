@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 import org.wigo.wigoevents.user.UserEntity;
 
 import java.time.OffsetDateTime;
@@ -17,7 +18,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "events")
-public abstract class EventEntity {
+@SQLRestriction("deleted = false")
+public class EventEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name= "event_id", updatable = false, nullable = false)
@@ -43,7 +45,7 @@ public abstract class EventEntity {
     private OffsetDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     @Builder.Default
     private EventStatus status = EventStatus.DRAFT;
 
@@ -54,6 +56,10 @@ public abstract class EventEntity {
     @Column(name = "capacity")
     private int capacity;
 
+    @Column(name = "deleted", nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
 
     public EventEntity(String eventName, String eventDescription, String eventLocation, OffsetDateTime eventStartDate, OffsetDateTime eventEndDate, int capacity) {
         this.eventName = eventName;
@@ -62,6 +68,7 @@ public abstract class EventEntity {
         this.eventStartDate = eventStartDate;
         this.eventEndDate = eventEndDate;
         this.capacity = capacity;
+        this.status = EventStatus.DRAFT;
     }
 
     public EventEntity() {}
