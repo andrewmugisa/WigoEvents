@@ -7,6 +7,9 @@
 A Spring Boot application for event management, built on top of the [`spring-auth`](https://github.com/andrewmugisa/Spring_auth) shared authentication library.
 
 ---
+<img width="3300" height="1867" alt="wigo_domain-WiGO_Events_Platform___Domain___Class_Diagram__Role_Based_" src="https://github.com/user-attachments/assets/cf8b8a53-5627-4e75-83df-358e7224a6ce" />
+
+---
 
 ## Architecture
 
